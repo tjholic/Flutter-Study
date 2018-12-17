@@ -35,26 +35,59 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Future<String> getData() async {
-    http.Response response = await http.get(
-        Uri.encodeFull("https://jsonplaceholder.typicode.com/posts"),
-        headers: {"accept": "application/json"});
-
-    List data = json.decode(response.body);
-    print(data[1]["title"]);
-    return data[1]["title"];
+  Future<Post> post;
+  @override
+  void initState() {
+    super.initState();
+    post = fetchPost();
   }
 
   @override
   Widget build(BuildContext context) {
+
+
     return new Scaffold(
-        appBar: new AppBar(title: new Text("Stateful Widget!"), backgroundColor: Colors.deepOrange),
+        appBar: new AppBar(title: new Text("Fetch Data Example"), backgroundColor: Colors.deepOrange),
         body: new Center(
-            child: new RaisedButton(
-                child: new Text("Get data!", style: new TextStyle(color: Colors.white, fontStyle: FontStyle.italic, fontSize: 20.0)),
-                onPressed: getData
-            )
+            child: FutureBuilder<Post>(
+                future: post,
+                builder: (context, snapshot) {
+                  if(snapshot.hasData) {
+                    return Text(snapshot.data.title, textAlign: TextAlign.center,);
+                  } else if(snapshot.hasError) {
+                    return Text("${snapshot.error}", textAlign: TextAlign.center,);
+                  }
+                  return CircularProgressIndicator();
+                }),
         )
+    );
+  }
+}
+
+Future<Post> fetchPost() async {
+  final response = await http.get('https://jsonplaceholder.typicode.com/posts/1');
+
+  if(response.statusCode == 200) {
+    return Post.fromJson(json.decode(response.body));
+  } else {
+    throw Exception('Failed to load post');
+  }
+}
+
+class Post {
+  final int userId;
+  final int id;
+  final String title;
+  final String body;
+
+  Post({this.userId, this.id, this.title, this.body});
+
+  factory Post.fromJson(Map<String, dynamic> json) {
+    return Post(
+        userId: json['userId'],
+        id: json['id'],
+        title: json['title'],
+        body: json['body']
     );
   }
 }
